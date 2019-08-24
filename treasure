@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -*- coding: binary -*-
+
+import sys
+import getopt
+from core.libs.process import Take
+from core.libs.extraction import extract
+from core.libs.enviroment import interactive
+
+class TreasureRuntimError(RuntimeError):
+    """Constructor for custom error messages."""
+    pass
+
+class Treasure(object):
+
+    def __init__(self):
+        self.verbose = True
+        self.__options = {}
+        self.__extract = extract()
+        self.__take = Take()
+        self.__environment = interactive()
+
+
+    def __tell(self, text, sep=' ', end='\n', stream=sys.stdout, flush=False):
+        if self.verbose or stream != sys.stdout:
+            stream.write(text)
+            if end is not None:
+                stream.write(end)
+            else:
+                if sep is not None:
+                    stream.write(sep)
+            if flush or end is None:
+                stream.flush()
+
+    def boot(self):
+        args, commands = getopt.getopt(sys.argv[1:], 'n:f:')
+        args = dict(args)
+
+        if len(commands) == 1 and commands[0] in self.commands:
+            command = commands[0]
+        else:
+            # if no args or options exist, show the help.
+            command = 'help'
+            args = {}
+        # if everything checks out. Run the desired command with the desired option(s)
+        func = self.commands[command]
+
+        req_params, opt_params = func.cli_options
+        for param in req_params:
+            if param not in ('-u',) and param not in args:
+                raise TreasureRuntimError("The command '%s' requires the " \
+                                        "option '%s'. See 'help'." % \
+                                        (command, param))
+        for arg, value in args.iteritems():
+            if arg in req_params or arg in opt_params:
+
+                if arg == '-n':
+                    self.__options['name'] = value
+
+                if arg == '-f':
+                    self.__options['file'] = value
+
+                    # Prevent messages from corrupting stdout
+                    if value == '-':
+                        self.verbose = False
+            else:
+                raise TreasureRuntimError("The command '%s' ignores the " \
+                                        "option '%s'." % (command, arg))
+
+        self.__tell("\nTreasure | GuerrillaWarfare - https://github.com/GuerrillaWarfare")
+
+        try:
+            func(self, **self.__options) # A wild TypeError appears from the tall grass.
+            # Will have to fix this TypeError later. Not sure what's causing exactly.
+        except TypeError:
+            self.print_help() # For now call on the help, they always know what to do.
+
+    def print_help(self):
+        """Show this message again.
+        """
+        self.__tell('Usage Treasure [option(s)] [command]'
+            '\n'
+            '\n Options:'
+            '\n  -n        : Attempt to find the Public ssh key(s) of a username.'
+            '\n  -f        : File name to extract some type of content from.'
+            '\n'
+            '\n Commands:')
+        m = max([len(command) for command in self.commands])
+        for command, func in sorted(self.commands.items()):
+            self.__tell('  %s%s : %s' % (command, \
+                                        ' ' * (m - len(command)), \
+                                        func.__doc__.split('\n')[0]))
+    print_help.cli_options = ((), ())
+
+    def __hunt__(self):
+        """Hunt for code.
+        """
+        self.__environment.code_search()
+    __hunt__.cli_options = ((), ())
+
+    def __ssh_keys__(self, name):
+        """Hunt for a github users ssh key(s).
+        """
+        self.__extract.PublicSSHKeys(name)
+    __ssh_keys__.cli_options = (('-n',), ())
+
+    def __iat__(self, file):
+        """Grab instagram access tokens from .code.dump (if any)
+        """
+        self.__take.InstagramAccessToken(file)
+    __iat__.cli_options = (('-f',), ())
+
+    def __ipv4__(self, file):
+        """Grab ipv4 addresses from .code.dump (if any)
+        """
+        self.__take.IPv4Addresses(file)
+    __ipv4__.cli_options = (('-f',), ())
+
+    def __ipv6__(self, file):
+        """Grab ipv6 addresses from .code.dump (if any)
+        """
+        self.__take.IPv6Addresses(file)
+    __ipv6__.cli_options = (('-f',), ())
+
+    def __btc__(self, file):
+        """Grab bitcoin wallet addresses from .code.dump (if any)
+        """
+        self.__take.BTCAddresses(file)
+    __btc__.cli_options = (('-f',), ())
+
+    def __fat__(self, file):
+        """Grab facebook access tokens from .code.dump (if any)
+        """
+        self.__take.FacebookAccessTokens(file)
+    __fat__.cli_options = (('-f',), ())
+
+    def __bid__(self, file):
+        """Grab blockchain identifiers from .code.dump (if any)
+        """
+        self.__take.BlockchainIdentifiers(file)
+    __bid__.cli_options = (('-f',), ())
+
+    def documentation(self):
+        """Documentation, for those who need it.
+        """
+        print """
+ ./treasure hunt              | interactively search for information.
+ ./treasure -n [USERNAME] ssh | Grab a users Public SSH Key(s) from github (if any)
+ ./treasure -f [FILE] iat     | Grab instagram access tokens from .code.dump (if any)
+ ./treasure -f [FILE] ipv4    | Grab ipv4 addresses from .code.dump (if any)
+ ./treasure -f [FILE] ipv6    | Grab ipv6 addresses from .code.dump (if any)
+ ./treasure -f [FILE] btc     | Grab bitcoin wallet addresses from .code.dump (if any)
+ ./treasure -f [FILE] bid     | Grab blockchain identifiers from .code.dump (if any)
+ ./treasure -f [FILE] fat     | Grab facebook access tokens from .code.dump (if any)
+        """
+    documentation.cli_options = ((), ())
+
+    commands = {
+    'hunt':__hunt__,
+    'help':print_help,
+    'ssh':__ssh_keys__,
+    'iat':__iat__,
+    'ipv4':__ipv4__,
+    'ipv6':__ipv6__,
+    'btc':__btc__,
+    'bid':__bid__,
+    'fat':__fat__,
+    'docs':documentation
+    }
+
+if __name__ == "__main__":
+    Treasure().boot()
